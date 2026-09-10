@@ -111,7 +111,7 @@ jobs:
       - name: Pack AnyKernel3
         run: |
           cd workspace
-          git clone --depth=1 https://github.com/Lafactorial/AnyKernel31 -b garnet AnyKernel3
+          git clone --depth=1 https://github.com/Lafactorial/AnyKernel31 -b master AnyKernel3
 
           # Image dosyasını kopyala
           if [ -f kernel/out/arch/arm64/boot/Image.gz ]; then
