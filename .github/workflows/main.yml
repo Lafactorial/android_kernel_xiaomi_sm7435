@@ -56,7 +56,6 @@ jobs:
         run: |
           mkdir -p workspace/clang
           cd workspace/clang
-          # Güvenilir ve modern Clang (r522817)
           wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r522817.tar.gz -O clang.tar.gz
           tar -xzf clang.tar.gz
           rm clang.tar.gz
@@ -96,7 +95,7 @@ jobs:
           scripts/kconfig/merge_config.sh -m -O out out/.config \
             arch/arm64/configs/vendor/extra.config
             
-          # 3. ThinLTO Optimizasyonunu Uygula (LTO Süresini Hızlandırır)
+          # 3. ThinLTO Optimizasyonunu Uygula
           scripts/config --file out/.config --disable CONFIG_LTO_CLANG_FULL
           scripts/config --file out/.config --enable CONFIG_LTO_CLANG_THIN
           scripts/config --file out/.config --enable CONFIG_THINLTO
@@ -130,8 +129,12 @@ jobs:
           find kernel/out/arch/arm64/boot/ -name "*.dtb" -exec cp {} AnyKernel3/ \; 2>/dev/null || true
           find kernel/out/arch/arm64/boot/dts/ -name "*.dtb" -exec cp {} AnyKernel3/ \; 2>/dev/null || true
 
-          zip -r9 ../Garnet-Kernel.zip * -x .git* README* *placeholder* LICENSE*
-          ls -lh ../Garnet-Kernel.zip
+          # Sadece AnyKernel3 klasörüne girip zip oluştur (Düzeltilen kısım)
+          cd AnyKernel3
+          zip -r9y ../Garnet-Kernel.zip . -x "*.git*" "README*" "*placeholder*" "LICENSE*"
+          
+          cd ..
+          ls -lh Garnet-Kernel.zip
 
       - name: Upload Kernel Zip
         uses: actions/upload-artifact@v4
@@ -139,3 +142,4 @@ jobs:
           name: Garnet-Kernel
           path: workspace/Garnet-Kernel.zip
           retention-days: 30
+          
