@@ -11,6 +11,7 @@
 #include <linux/compat.h>
 #ifdef CONFIG_KSU_SUSFS
 #include <linux/susfs_def.h>
+#include <linux/susfs.h>
 #endif // #ifdef CONFIG_KSU_SUSFS
 
 #include "internal.h"
