@@ -22,7 +22,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          apt-get clean
+          sudo apt-get clean
           sudo apt-get install -y \
             build-essential bc flex bison libssl-dev libelf-dev \
             zip git ccache python3 device-tree-compiler libpcap-dev \
