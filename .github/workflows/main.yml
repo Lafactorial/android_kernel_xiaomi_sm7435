@@ -71,26 +71,33 @@ jobs:
           path: workspace/devicetrees
           fetch-depth: 1
 
-      - name: Download AOSP Clang
+      - name: Download AOSP Clang (Latest Stable)
         run: |
           set -euxo pipefail
+
           mkdir -p workspace
           cd workspace
 
-          git clone --depth=1 --filter=blob:none --no-checkout \
-            -b main \
+          git clone --depth=1 --filter=blob:none --sparse \
+            -b mirror-goog-main-llvm-toolchain-source \
             https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 \
             clang-tmp
 
           cd clang-tmp
+
+          ls -d clang-r* || true
+
+          CLANG_DIR=$(ls -d clang-r* | sort -V | tail -1)
+          echo "r596125: $CLANG_DIR"
+
           git sparse-checkout set clang-r596125
-          git checkout main  # <--- Hatanı çözen eksik komut (faydaları diske indirir)
-          
           mv clang-r596125 ../clang
           cd ..
           rm -rf clang-tmp
 
+          echo "=== Clang Version ==="
           ./clang/bin/clang --version
+          ls -la clang/bin/ | head -10
 
       - name: Build Kernel
         run: |
