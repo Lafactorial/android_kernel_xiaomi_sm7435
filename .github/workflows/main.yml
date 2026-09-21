@@ -74,41 +74,20 @@ jobs:
       - name: Download AOSP Clang
         run: |
           set -euxo pipefail
-
           mkdir -p workspace
           cd workspace
 
-          echo "=== Cloning available Clang ==="
           git clone --depth=1 --filter=blob:none --sparse \
             -b main \
             https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 \
             clang-tmp
 
           cd clang-tmp
-
-          # List what is actually available (for debugging)
-          echo "Available clang versions:"
-          ls -d clang-* || true
-
-          # Prefer a known good version
-          if [ -d clang-r547379 ]; then
-            CLANG_DIR=clang-r547379
-          elif [ -d clang-r536225 ]; then
-            CLANG_DIR=clang-r536225
-          elif [ -d clang-r530567 ]; then
-            CLANG_DIR=clang-r530567
-          else
-            # Take the newest one that exists
-            CLANG_DIR=$(ls -d clang-r* | sort -V | tail -1)
-          fi
-
-          echo "Using $CLANG_DIR"
-          git sparse-checkout set "$CLANG_DIR"
-          mv "$CLANG_DIR" ../clang
+          git sparse-checkout set clang-r547379
+          mv clang-r547379 ../clang
           cd ..
           rm -rf clang-tmp
 
-          echo "=== Clang version ==="
           ./clang/bin/clang --version
 
       - name: Build Kernel
