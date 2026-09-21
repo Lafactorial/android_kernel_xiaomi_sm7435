@@ -78,6 +78,7 @@ jobs:
           mkdir -p workspace
           cd workspace
 
+          echo "=== En son stabil Clang indiriliyor ==="
           git clone --depth=1 --filter=blob:none --sparse \
             -b mirror-goog-main-llvm-toolchain-source \
             https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 \
@@ -85,19 +86,28 @@ jobs:
 
           cd clang-tmp
 
-          ls -d clang-r* || true
+          # Mevcut clang dizinlerini tree'den bul
+          echo "Mevcut Clang sürümleri:"
+          git ls-tree --name-only HEAD | grep '^clang-r' | sort -V
 
-          CLANG_DIR=$(ls -d clang-r* | sort -V | tail -1)
-          echo "r596125: $CLANG_DIR"
+          # En yeni olanı seç
+          CLANG_DIR=$(git ls-tree --name-only HEAD | grep '^clang-r' | sort -V | tail -1)
+          echo "Seçilen sürüm: $CLANG_DIR"
 
-          git sparse-checkout set clang-r596125
-          mv clang-r596125 ../clang
+          if [ -z "$CLANG_DIR" ]; then
+            echo "Hiç clang-r* bulunamadı!"
+            git ls-tree --name-only HEAD
+            exit 1
+          fi
+
+          git sparse-checkout set "$CLANG_DIR"
+          mv "$CLANG_DIR" ../clang
           cd ..
           rm -rf clang-tmp
 
           echo "=== Clang Version ==="
           ./clang/bin/clang --version
-          ls -la clang/bin/ | head -10
+          ls clang/bin/ | head -10
 
       - name: Build Kernel
         run: |
