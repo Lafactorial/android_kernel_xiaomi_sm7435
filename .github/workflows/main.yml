@@ -74,27 +74,16 @@ jobs:
       - name: Download AOSP Clang
         run: |
           set -x
-          echo "=== Current directory & permissions ==="
-          pwd
-          id
-          ls -la
-          df -h
-          mount | grep -E 'workspace|runner|build'
-
-          # Force-create with correct ownership
-          sudo mkdir -p workspace/clang
-          sudo chown -R $USER:$USER workspace
-
+          mkdir -p workspace/clang
           cd workspace/clang
 
           wget -q --show-progress \
-            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/mirror-goog-llvm-r563880-release/clang-r563880c.tar.gz" \
+            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r563880c.tar.gz" \
             -O clang.tar.gz
 
           tar -xzf clang.tar.gz
           rm -f clang.tar.gz
 
-          # Flatten if the archive created a sub-directory
           if [ -d clang-r563880c ]; then
             mv clang-r563880c/* .
             rmdir clang-r563880c || true
