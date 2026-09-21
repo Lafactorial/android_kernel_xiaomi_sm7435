@@ -78,22 +78,21 @@ jobs:
           mkdir -p workspace
           cd workspace
 
-          echo "=== Cloning Clang (sparse) ==="
+          echo "=== Cloning Clang (sparse) from the correct branch ==="
           git clone --depth=1 --filter=blob:none --sparse \
+            -b mirror-goog-main-llvm-toolchain-source \
             https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 \
             clang-tmp
 
           cd clang-tmp
           git sparse-checkout set clang-r563880c
+          ls -la                    # debug: confirm the directory exists
           mv clang-r563880c ../clang
           cd ..
           rm -rf clang-tmp
 
           echo "=== Clang version ==="
           ./clang/bin/clang --version
-
-          echo "=== Contents ==="
-          ls -la clang/bin/ | head -20
 
       - name: Build Kernel
         run: |
