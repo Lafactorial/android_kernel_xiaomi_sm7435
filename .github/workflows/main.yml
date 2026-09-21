@@ -73,9 +73,25 @@ jobs:
         run: |
           mkdir -p workspace/clang
           cd workspace/clang
-          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/mirror-goog-llvm-r563880-release/clang-r563880c.tar.gz -O clang-r563880c.tar.gz
+
+          # Download
+          wget -q --show-progress \
+            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/mirror-goog-llvm-r563880-release/clang-r563880c.tar.gz" \
+            -O clang.tar.gz
+
+          # Extract (the archive usually contains a top-level clang-r563880c/ directory)
           tar -xzf clang.tar.gz
           rm clang.tar.gz
+
+          # Flatten if needed
+          if [ -d clang-r563880c ]; then
+            mv clang-r563880c/* .
+            rmdir clang-r563880c 2>/dev/null || true
+          fi
+
+          echo "=== Clang contents ==="
+          ls -la
+          echo ""
           echo "=== Clang Version ==="
           ./bin/clang --version
 
