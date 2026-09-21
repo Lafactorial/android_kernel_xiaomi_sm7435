@@ -78,7 +78,7 @@ jobs:
           mkdir -p workspace
           cd workspace
 
-          echo "=== En son stabil Clang indiriliyor ==="
+          echo "=== Downloading latest stable Clang ==="
           git clone --depth=1 --filter=blob:none --sparse \
             -b mirror-goog-main-llvm-toolchain-source \
             https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 \
@@ -86,16 +86,16 @@ jobs:
 
           cd clang-tmp
 
-          # Mevcut clang dizinlerini tree'den bul
-          echo "Mevcut Clang sürümleri:"
+          # Find existing Clang directories in the tree
+          echo "Available Clang versions:"
           git ls-tree --name-only HEAD | grep '^clang-r' | sort -V
 
-          # En yeni olanı seç
+          # Pick the latest one
           CLANG_DIR=$(git ls-tree --name-only HEAD | grep '^clang-r' | sort -V | tail -1)
-          echo "Seçilen sürüm: $CLANG_DIR"
+          echo "selected version: $CLANG_DIR"
 
           if [ -z "$CLANG_DIR" ]; then
-            echo "Hiç clang-r* bulunamadı!"
+            echo "No clang-r* found!"
             git ls-tree --name-only HEAD
             exit 1
           fi
@@ -169,8 +169,8 @@ jobs:
               exit 1
           fi
 
-          # Debug: AnyKernel3 içeriğini göster
-          echo "=== AnyKernel3 içeriği (zip öncesi) ==="
+          # Debug: Show AnyKernel3 contents
+          echo "=== AnyKernel3 contents (before zipping) ==="
           ls -la AnyKernel3/
 
           cd AnyKernel3
@@ -185,7 +185,7 @@ jobs:
           mv /tmp/Garnet-Kernel.zip ../Garnet-Kernel.zip
           cd ..
 
-          echo "=== Final Zip içeriği ==="
+          echo "=== Final Zip contents ==="
           unzip -l Garnet-Kernel.zip
 
       - name: Upload Kernel Zip
