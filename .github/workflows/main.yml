@@ -83,8 +83,8 @@ jobs:
             clang-tmp
 
           cd clang-tmp
-          git sparse-checkout set clang-r547379
-          mv clang-r547379 ../clang
+          git sparse-checkout set clang-r596125
+          mv clang-r596125 ../clang
           cd ..
           rm -rf clang-tmp
 
