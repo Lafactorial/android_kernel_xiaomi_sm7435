@@ -73,24 +73,27 @@ jobs:
 
       - name: Download AOSP Clang
         run: |
-          set -x
-          mkdir -p workspace/clang
-          cd workspace/clang
+          set -euxo pipefail
 
-          wget -q --show-progress \
-            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r563880c.tar.gz" \
-            -O clang.tar.gz
+          mkdir -p workspace
+          cd workspace
 
-          tar -xzf clang.tar.gz
-          rm -f clang.tar.gz
+          echo "=== Cloning Clang (sparse) ==="
+          git clone --depth=1 --filter=blob:none --sparse \
+            https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 \
+            clang-tmp
 
-          if [ -d clang-r563880c ]; then
-            mv clang-r563880c/* .
-            rmdir clang-r563880c || true
-          fi
+          cd clang-tmp
+          git sparse-checkout set clang-r563880c
+          mv clang-r563880c ../clang
+          cd ..
+          rm -rf clang-tmp
 
           echo "=== Clang version ==="
-          ./bin/clang --version
+          ./clang/bin/clang --version
+
+          echo "=== Contents ==="
+          ls -la clang/bin/ | head -20
 
       - name: Build Kernel
         run: |
