@@ -78,16 +78,33 @@ jobs:
           mkdir -p workspace
           cd workspace
 
-          echo "=== Cloning Clang (sparse) from the correct branch ==="
+          echo "=== Cloning available Clang ==="
           git clone --depth=1 --filter=blob:none --sparse \
-            -b mirror-goog-main-llvm-toolchain-source \
+            -b main \
             https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 \
             clang-tmp
 
           cd clang-tmp
-          git sparse-checkout set clang-r563880c
-          ls -la                    # debug: confirm the directory exists
-          mv clang-r563880c ../clang
+
+          # List what is actually available (for debugging)
+          echo "Available clang versions:"
+          ls -d clang-* || true
+
+          # Prefer a known good version
+          if [ -d clang-r547379 ]; then
+            CLANG_DIR=clang-r547379
+          elif [ -d clang-r536225 ]; then
+            CLANG_DIR=clang-r536225
+          elif [ -d clang-r530567 ]; then
+            CLANG_DIR=clang-r530567
+          else
+            # Take the newest one that exists
+            CLANG_DIR=$(ls -d clang-r* | sort -V | tail -1)
+          fi
+
+          echo "Using $CLANG_DIR"
+          git sparse-checkout set "$CLANG_DIR"
+          mv "$CLANG_DIR" ../clang
           cd ..
           rm -rf clang-tmp
 
