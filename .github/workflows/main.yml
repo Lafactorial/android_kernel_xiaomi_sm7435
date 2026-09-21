@@ -12,12 +12,14 @@ jobs:
       - name: Free Disk Space
         uses: easimon/maximize-build-space@v10
         with:
-          root-reserve-mb: 8192
-          swap-size-mb: 2048
+          root-reserve-mb: 12288          # leave more space on /
+          swap-size-mb: 4096
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
+          # Optional but recommended:
+          # build-mount-path: /mnt/build   # mount elsewhere instead of over workspace
 
       - name: Install Dependencies
         run: |
@@ -71,28 +73,34 @@ jobs:
 
       - name: Download AOSP Clang
         run: |
-          mkdir -p workspace/clang
+          set -x
+          echo "=== Current directory & permissions ==="
+          pwd
+          id
+          ls -la
+          df -h
+          mount | grep -E 'workspace|runner|build'
+
+          # Force-create with correct ownership
+          sudo mkdir -p workspace/clang
+          sudo chown -R $USER:$USER workspace
+
           cd workspace/clang
 
-          # Download
           wget -q --show-progress \
             "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/mirror-goog-llvm-r563880-release/clang-r563880c.tar.gz" \
             -O clang.tar.gz
 
-          # Extract (the archive usually contains a top-level clang-r563880c/ directory)
           tar -xzf clang.tar.gz
-          rm clang.tar.gz
+          rm -f clang.tar.gz
 
-          # Flatten if needed
+          # Flatten if the archive created a sub-directory
           if [ -d clang-r563880c ]; then
             mv clang-r563880c/* .
-            rmdir clang-r563880c 2>/dev/null || true
+            rmdir clang-r563880c || true
           fi
 
-          echo "=== Clang contents ==="
-          ls -la
-          echo ""
-          echo "=== Clang Version ==="
+          echo "=== Clang version ==="
           ./bin/clang --version
 
       - name: Build Kernel
