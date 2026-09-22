@@ -167,6 +167,35 @@ jobs:
           fi
           echo "=== AnyKernel3 contents ==="
           ls -la AnyKernel3/
+
+      - name: Zip AnyKernel3
+        run: |
+          cd workspace/AnyKernel3
+          ZIP_NAME="Garnet-Kernel-$(date +%Y%m%d-%H%M).zip"
+          zip -r9 "../$ZIP_NAME" ./*
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
+
+      - name: Send Kernel to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          cd workspace
+          ZIP_FILE="${{ env.ZIP_NAME }}"
+          
+          CAPTION="🚀 *Garnet (Poco X6 5G) Kernel Derlemesi Başarılı!*
+
+          📅 *Tarih:* $(date '+%Y-%m-%d %H:%M:%S')
+          📦 *Dosya:* \`${ZIP_FILE}\`
+          🔨 *Branch:* lineage-23.2-ksun
+          ⚙️ *Compiler:* AOSP Clang"
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+            -F chat_id="${TELEGRAM_CHAT_ID}" \
+            -F document=@"${ZIP_FILE}" \
+            -F parse_mode="Markdown" \
+            -F caption="${CAPTION}"
+
       - name: Upload Kernel
         uses: actions/upload-artifact@v4
         with:
