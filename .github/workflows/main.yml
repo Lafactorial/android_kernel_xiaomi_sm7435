@@ -178,7 +178,7 @@ jobs:
       - name: Send Kernel to Telegram
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_ID: ${{ secrets.CHANNEL_ID }}
         run: |
           cd workspace
           ZIP_FILE="${{ env.ZIP_NAME }}"
@@ -191,7 +191,7 @@ jobs:
           ⚙️ *Compiler:* AOSP Clang"
 
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
-            -F chat_id="${TELEGRAM_CHAT_ID}" \
+            -F chat_id="${CHANNEL_ID}" \
             -F document=@"${ZIP_FILE}" \
             -F parse_mode="Markdown" \
             -F caption="${CAPTION}"
