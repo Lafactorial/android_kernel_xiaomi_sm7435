@@ -1,0 +1,204 @@
+name: Garnet (Poco X6 5G) Kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Free Disk Space
+        uses: easimon/maximize-build-space@v10
+        with:
+          root-reserve-mb: 12288          # leave more space on /
+          swap-size-mb: 4096
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          # Optional but recommended:
+          # build-mount-path: /mnt/build   # mount elsewhere instead of over workspace
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get clean
+          sudo apt-get install -y \
+            build-essential bc flex bison libssl-dev libelf-dev \
+            zip git ccache python3 device-tree-compiler libpcap-dev \
+            gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi wget curl
+
+      - name: Checkout Main Kernel
+        uses: actions/checkout@v4
+        with:
+          repository: Lafactorial/android_kernel_xiaomi_sm7435
+          ref: seventeen
+          path: workspace/kernel
+          fetch-depth: 0
+
+      - name: Init & Update Submodules
+        working-directory: workspace/kernel
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive --force
+          echo "=== Submodule status ==="
+          git submodule status --recursive
+
+      - name: Show Kernel Version
+        working-directory: workspace/kernel
+        run: |
+          echo "=== Kernel HEAD ==="
+          git log -1 --oneline
+          echo ""
+          echo "=== Submodule status ==="
+          git submodule status --recursive
+
+      - name: Checkout Kernel Modules
+        uses: actions/checkout@v4
+        with:
+          repository: Lafactorial/android_kernel_xiaomi_sm7435-modules
+          ref: seventeen
+          path: workspace/modules
+          fetch-depth: 1
+
+      - name: Checkout DeviceTrees
+        uses: actions/checkout@v4
+        with:
+          repository: Lafactorial/android_kernel_xiaomi_sm7435-devicetrees
+          ref: seventeen
+          path: workspace/devicetrees
+          fetch-depth: 1
+
+      - name: Download AOSP Clang (Latest Stable)
+        run: |
+          set -euxo pipefail
+
+          mkdir -p workspace
+          cd workspace
+
+          echo "=== Downloading latest stable Clang ==="
+          git clone --depth=1 --filter=blob:none --sparse \
+            -b mirror-goog-main-llvm-toolchain-source \
+            https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 \
+            clang-tmp
+
+          cd clang-tmp
+
+          # Find existing Clang directories in the tree
+          echo "Available Clang versions:"
+          git ls-tree --name-only HEAD | grep '^clang-r' | sort -V
+
+          # Pick the latest one
+          CLANG_DIR=$(git ls-tree --name-only HEAD | grep '^clang-r' | sort -V | tail -1)
+          echo "selected version: $CLANG_DIR"
+
+          if [ -z "$CLANG_DIR" ]; then
+            echo "No clang-r* found!"
+            git ls-tree --name-only HEAD
+            exit 1
+          fi
+
+          git sparse-checkout set "$CLANG_DIR"
+          mv "$CLANG_DIR" ../clang
+          cd ..
+          rm -rf clang-tmp
+
+          echo "=== Clang Version ==="
+          ./clang/bin/clang --version
+          ls clang/bin/ | head -10
+
+      - name: Build Kernel
+        run: |
+          cd workspace/kernel
+
+          export PATH="$(pwd)/../clang/bin:$PATH"
+          export ARCH=arm64
+          export SUBARCH=arm64
+
+          export CC=clang
+          export HOSTCC=gcc
+          export HOSTCXX=g++
+          export HOSTAR=ar
+          export HOSTLD=ld
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          export LLVM=1
+          export LLVM_IAS=1
+
+          make O=out ARCH=arm64 gki_defconfig
+
+          scripts/kconfig/merge_config.sh -m -O out out/.config \
+            arch/arm64/configs/vendor/parrot_GKI.config
+          scripts/kconfig/merge_config.sh -m -O out out/.config \
+            arch/arm64/configs/vendor/garnet_GKI.config
+          scripts/kconfig/merge_config.sh -m -O out out/.config \
+            arch/arm64/configs/vendor/debugfs.config
+          scripts/kconfig/merge_config.sh -m -O out out/.config \
+            arch/arm64/configs/vendor/extra.config
+
+          scripts/config --file out/.config --disable CONFIG_LTO_CLANG_FULL
+          scripts/config --file out/.config --enable CONFIG_LTO_CLANG_THIN
+          scripts/config --file out/.config --enable CONFIG_THINLTO
+
+          make O=out ARCH=arm64 olddefconfig
+          make O=out ARCH=arm64 HOSTCC=gcc HOSTLD=ld -j$(nproc --all)
+
+          echo "=== Build completed ==="
+          ls -lh out/arch/arm64/boot/
+
+      - name: Prepare AnyKernel3
+        run: |
+          cd workspace
+          rm -rf AnyKernel3
+          git clone --depth=1 https://github.com/Lafactorial/AnyKernel31 -b master AnyKernel3
+          if [ -f kernel/out/arch/arm64/boot/Image ]; then
+              cp kernel/out/arch/arm64/boot/Image AnyKernel3/
+              echo "Copied Image"
+          elif [ -f kernel/out/arch/arm64/boot/Image.gz ]; then
+              cp kernel/out/arch/arm64/boot/Image.gz AnyKernel3/
+              echo "Copied Image.gz"
+          else
+              echo "ERROR: No kernel Image found!"
+              ls -la kernel/out/arch/arm64/boot/
+              exit 1
+          fi
+          echo "=== AnyKernel3 contents ==="
+          ls -la AnyKernel3/
+
+      - name: Zip AnyKernel3
+        run: |
+          cd workspace/AnyKernel3
+          ZIP_NAME="Garnet-Kernel-$(date +%Y%m%d-%H%M).zip"
+          zip -r9 "../$ZIP_NAME" ./*
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
+
+      - name: Send Kernel to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          cd workspace
+          ZIP_FILE="${{ env.ZIP_NAME }}"
+          
+          CAPTION="🚀 *Garnet (Poco X6 5G) Kernel Derlemesi Başarılı!*
+
+          📅 *Tarih:* $(date '+%Y-%m-%d %H:%M:%S')
+          📦 *Dosya:* \`${ZIP_FILE}\`
+          🔨 *Branch:* seventeen
+          ⚙️ *Compiler:* AOSP Clang"
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+            -F chat_id="${TELEGRAM_CHAT_ID}" \
+            -F document=@"${ZIP_FILE}" \
+            -F parse_mode="Markdown" \
+            -F caption="${CAPTION}"
+
+      - name: Upload Kernel
+        uses: actions/upload-artifact@v4
+        with:
+          name: Garnet-Kernel
+          path: workspace/AnyKernel3/
+          retention-days: 30
