@@ -71,14 +71,14 @@ jobs:
           path: workspace/devicetrees
           fetch-depth: 1
 
-      - name: Download AOSP Clang (Latest Stable)
+      - name: Download AOSP Clang (clang-r584948b)
         run: |
           set -euxo pipefail
 
           mkdir -p workspace
           cd workspace
 
-          echo "=== Downloading latest stable Clang ==="
+          echo "=== Downloading Clang r584948b ==="
           git clone --depth=1 --filter=blob:none --sparse \
             -b mirror-goog-main-llvm-toolchain-source \
             https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 \
@@ -86,17 +86,14 @@ jobs:
 
           cd clang-tmp
 
-          # Find existing Clang directories in the tree
-          echo "Available Clang versions:"
-          git ls-tree --name-only HEAD | grep '^clang-r' | sort -V
+          CLANG_DIR="clang-r584948b"
+          echo "Selected version: $CLANG_DIR"
 
-          # Pick the latest one
-          CLANG_DIR=$(git ls-tree --name-only HEAD | grep '^clang-r' | sort -V | tail -1)
-          echo "selected version: $CLANG_DIR"
-
-          if [ -z "$CLANG_DIR" ]; then
-            echo "No clang-r* found!"
-            git ls-tree --name-only HEAD
+          # Klasörün gerçekten var olduğunu kontrol et
+          if ! git ls-tree --name-only HEAD | grep -qx "$CLANG_DIR"; then
+            echo "ERROR: $CLANG_DIR bulunamadı!"
+            echo "Mevcut clang-r* sürümleri:"
+            git ls-tree --name-only HEAD | grep '^clang-r' | sort -V
             exit 1
           fi
 
