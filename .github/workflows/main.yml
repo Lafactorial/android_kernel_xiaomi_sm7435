@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Lafactorial/android_kernel_xiaomi_sm7435
-          ref: seventeen
+          ref: lineage-23.2-ksun
           path: workspace/kernel
           fetch-depth: 0
 
