@@ -12,24 +12,43 @@ jobs:
       - name: Free Disk Space
         uses: easimon/maximize-build-space@v10
         with:
-          root-reserve-mb: 16384          # Increased reserve to 16GB
+          root-reserve-mb: 12288
           swap-size-mb: 4096
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
           remove-docker-images: 'true'
+          remove-large-packages: 'true'
           # Optional but recommended:
           # build-mount-path: /mnt/build   # mount elsewhere instead of over workspace
 
+      - name: Clean APT & Show Disk
+       run: |
+         sudo apt-get clean
+         sudo rm -rf /var/lib/apt/lists/*
+         sudo rm -rf /var/cache/apt/archives/*
+         df -h
+         df -h /var
+
       - name: Install Dependencies
         run: |
-          sudo apt-get update
+          set -euxo pipefail
+
           sudo apt-get clean
-          sudo apt-get install -y \
+          sudo rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+          sudo apt-get update -o Acquire::Retries=3
+          
+          sudo apt-get install -y --no-install-recommends \
             build-essential bc flex bison libssl-dev libelf-dev \
             zip git ccache python3 device-tree-compiler libpcap-dev \
             gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi wget curl
+
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+          df -h
 
       - name: Checkout Main Kernel
         uses: actions/checkout@v4
