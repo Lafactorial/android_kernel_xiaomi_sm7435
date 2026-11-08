@@ -24,7 +24,7 @@ jobs:
           # build-mount-path: /mnt/build   # mount elsewhere instead of over workspace
 
       - name: Clean APT & Show Disk
-       run: |
+        run: |
          sudo apt-get clean
          sudo rm -rf /var/lib/apt/lists/*
          sudo rm -rf /var/cache/apt/archives/*
